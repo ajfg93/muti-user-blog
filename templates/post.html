@@ -1,0 +1,77 @@
+<div class="post">
+  <div class="post-heading">
+    <div class="post-title">
+      {{p.subject}}
+    </div>
+
+    <div class="post-date">
+      {{p.created.strftime("%b %d, %Y")}}
+    </div>
+  </div>
+
+  <div class="post-content">
+    {{p._render_text | safe}}
+  </div>
+
+  {% if cuid %}
+
+  {% if cuid == p.user.key().id() %}
+  <div class="edit-link-div">
+    <button><a href="/blog/edit/{{p.key().id()}}">edit</a></button>
+    <form method="post" action="/blog/delete/{{p.key().id()}}">
+      <button type="submit">delete</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="make-like"></div>
+    <form method="post" action="/blog/like/{{p.key().id()}}">
+      <input type="radio" name="like" value="1">
+      <input type="radio" name="like" value="0">
+      <button type="submit">edit</button>
+    </form>
+    <form method="post" action="/blog/delete_like/{{p.key().id()}}">
+      <button type="submit">delete my like or unlike</button>
+    </form>
+  </div>
+
+  <div class="like">
+    <p>like = {{l_cnt}}</p>
+    <p>unlike = {{ul_cnt}}</p>
+  </div>
+
+
+
+
+  <div class="comments">
+    {% for c in comments %}
+    <p>{{c.content}}</p>
+    <p>{{c.user.name}}</p>
+    <hr>
+    <p>{{c.user.key().id()}}</p>
+
+    {% if cuid == c.user.key().id() %}
+    <form method="post" action="/blog/comment/edit/{{c.key().id()}}">
+      <textarea name="content">{{c.content}}</textarea>
+      <button type="submit">edit</button>
+    </form>
+    <form method="post" action="/blog/comment/delete/{{c.key().id()}}">
+      <button type="submit">delete</button>
+    </form>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+
+  
+  <div class="make-comment">
+    <form method="post" action="/blog/comment/{{p.key().id()}}">
+      <textarea name="content"></textarea>
+      <button type="submit">submit</button>
+    </form>
+    <a href="/blog/comment/{{p.key().id()}}">comment</a>
+  </div>
+
+  {% endif %}
+
+</div>
