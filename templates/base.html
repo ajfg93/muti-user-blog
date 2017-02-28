@@ -1,31 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link type="text/css" rel="stylesheet" href="/static/main.css" />
-
-  <title>CS 253 Blog</title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../../static/bootstrap.min.css">
+  <link rel="stylesheet" href="../../static/blog.css">
+  <script src="https://use.fontawesome.com/bbc7fefcf9.js"></script>
+  <link rel="stylesheet" href="../../static/customized.css">
+  <title>My Blog</title>
 </head>
 
 <body>
-  <a href="/blog" class="main-title">
-    CS 253 Blog
-  </a>
+  <div class="container">
+    <header>
+      <div class="row header">
+        <div class="col-sm-8">
+          <h1><a href="/blog">Muti User Blog</a></h1>
+        </div>
+        <div class="col-sm-4 navigation">
+          {% if user %}
+          {{user.name}} (<a class="login-link" href="/logout">logout</a>)
+          <br>
+          <a href="/blog/newpost" class="login-link">write a new post</a>
+          {% else %}
+          <a class="login-link" href="/login">login</a>
+          |
+          <a class="login-link" href="/signup">signup</a>
+          {% endif %}
+        </div>
+      </div>
+    </header>
+    <div class="row">
+      <div class="col-sm-12">
+        {% block content %}
+        {% endblock %}
+      </div>
+    </div>
+  </div>
+<script type="text/javascript">
+  // toggle the comment editer form
+  function show_edit(idName){
+    var c_editer = document.getElementById(idName);
+    if (c_editer.style.display === "block"){
+      c_editer.style.display = "none";
+    }else{
+      c_editer.style.display = "block";
+    }
+  }
 
-  <div class="login-area">
-    {% if user %}
-      {{user.name}} (<a class="login-link" href="/logout">logout</a>)
-      <br>
-      <a href="/blog/newpost" class="login-link">write a new post</a>
-    {% else %}
-      <a class="login-link" href="/login">login</a>
-      |
-      <a class="login-link" href="/signup">signup</a>
-    {% endif %}
-  </div>
-  <div id="content">
-  {% block content %}
-  {% endblock %}
-  </div>
+
+</script>
 </body>
 
 </html>

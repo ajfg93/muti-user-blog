@@ -1,77 +1,122 @@
-<div class="post">
-  <div class="post-heading">
-    <div class="post-title">
-      {{p.subject}}
+<!-- with cuid, it means that the user is logged in -->
+<div class="blog-main">
+  <div class="blog-post">
+    <h2 class="blog-post-title">{{p.subject}}</h2>
+    <p class="blog-post-meta">{{p.created.strftime("%b %d, %Y")}} by <span>{{p.user.name}}</span></p>
+    <p>{{p._render_text | safe}}</p>
+
+    <!-- post edit area -->
+
+    {% if cuid and cuid == p.user.key().id() %}
+    <!-- user log in and he's the post creator, show this -->
+    <div class="post-edit-ctrl">
+      <button  class="btn btn-default"><a href="/blog/edit/{{p.key().id()}}">edit</a></button>
+      <button  class="btn btn-default delete-post-btn" onclick="show_edit('{{p.key().id()}}_delete_post')">delete</button>
+      <form method="post" id="{{p.key().id()}}_delete_post" class="form-post-delete" action="/blog/delete/{{p.key().id()}}">
+        <button  class="btn btn-warning" type="submit">Yes, delete my post.</button>
+      </form>
     </div>
-
-    <div class="post-date">
-      {{p.created.strftime("%b %d, %Y")}}
-    </div>
-  </div>
-
-  <div class="post-content">
-    {{p._render_text | safe}}
-  </div>
-
-  {% if cuid %}
-
-  {% if cuid == p.user.key().id() %}
-  <div class="edit-link-div">
-    <button><a href="/blog/edit/{{p.key().id()}}">edit</a></button>
-    <form method="post" action="/blog/delete/{{p.key().id()}}">
-      <button type="submit">delete</button>
-    </form>
-  </div>
-  {% endif %}
-
-  <div class="make-like"></div>
-    <form method="post" action="/blog/like/{{p.key().id()}}">
-      <input type="radio" name="like" value="1">
-      <input type="radio" name="like" value="0">
-      <button type="submit">edit</button>
-    </form>
-    <form method="post" action="/blog/delete_like/{{p.key().id()}}">
-      <button type="submit">delete my like or unlike</button>
-    </form>
-  </div>
-
-  <div class="like">
-    <p>like = {{l_cnt}}</p>
-    <p>unlike = {{ul_cnt}}</p>
-  </div>
-
-
-
-
-  <div class="comments">
-    {% for c in comments %}
-    <p>{{c.content}}</p>
-    <p>{{c.user.name}}</p>
-    <hr>
-    <p>{{c.user.key().id()}}</p>
-
-    {% if cuid == c.user.key().id() %}
-    <form method="post" action="/blog/comment/edit/{{c.key().id()}}">
-      <textarea name="content">{{c.content}}</textarea>
-      <button type="submit">edit</button>
-    </form>
-    <form method="post" action="/blog/comment/delete/{{c.key().id()}}">
-      <button type="submit">delete</button>
-    </form>
     {% endif %}
-    {% endfor %}
+  </div>
+
+  <!-- like area -->
+  <div class="post-like-show row">
+      <div class="col-xs-4 col-sm-2">
+       <i class="fa fa-thumbs-o-up fa-2" aria-hidden="true"> {{l_cnt}}</i>
+       &nbsp;&nbsp;
+       <i class="fa fa-thumbs-o-down fa-2" aria-hidden="true"> {{ul_cnt}}</i>
+     </div>
+     {% if cuid %}
+     <!-- show if the user likes or dislikes the post -->
+     <div class="col-xs-8 col-sm-4">
+        {% if cuid_like_record.isLike == True %}        
+          <span class="label label-success">You like this post</span>
+        {% elif cuid_like_record.isLike == False %}
+          <span class="label label-danger">You dislike this post</span>
+        {% else %}
+          <span class="label label-info">like it?</span>
+       {% endif %}
+     </div>
+
+     <!-- only log in user can like or dislike -->
+     <div class="col-xs-12 col-sm-6 post-like-edit">
+       <form method="post" class="form-like-delete" action="/blog/delete_like/{{p.key().id()}}">
+        <div class="form-group">
+          <button class="btn btn-default" type="submit">delete my like record</button> 
+        </div>
+      </form>
+      <form method="post" class="form-inline form-like-unlike" action="/blog/like/{{p.key().id()}}">
+        <div class="form-group">
+          <input type="hidden" name="like" value="0">
+          <button class="btn btn-default" type="submit">Unlike</button>
+        </div>
+      </form>    
+      <form method="post" class="form-inline form-like-like" action="/blog/like/{{p.key().id()}}">
+        <div class="form-group">
+          <input type="hidden" name="like" value="1">
+          <button class="btn btn-default" type="submit">Like</button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
   </div>
 
 
-  
-  <div class="make-comment">
-    <form method="post" action="/blog/comment/{{p.key().id()}}">
-      <textarea name="content"></textarea>
-      <button type="submit">submit</button>
-    </form>
-    <a href="/blog/comment/{{p.key().id()}}">comment</a>
+  <!-- comment area -->
+
+  <!-- only log in user can make comments -->
+  <div class="comments">
+    <!-- iterate all comments for each post -->
+    <div>
+      <h4>Comments</h4>
+    </div>
+    <div>
+  {% for c in comments %}
+      <p class="comment-content">{{c.content}}</p>
+      <p class="comment-author">{{c.last_modified.strftime("%H:%M:%S, %b %d, %Y")}} by <span>{{c.user.name}}</span></p>
+    </div>
+    <!-- comment-edit -->
+    {% if cuid == c.user.key().id() %}
+    <!-- only the comment creator and edit his/her own comment -->
+    <div class="comment-edit-ctrl">
+      <button class="btn btn-default" onclick="show_edit('{{c.key().id()}}')">edit</button>
+      <button  class="btn btn-default" onclick="show_edit('{{c.key().id()}}_delete_comment')">delete</button>
+      <br>
+      <form method="post" class="form-comment-delete" id="{{c.key().id()}}_delete_comment" action="/blog/comment/delete/{{c.key().id()}}">
+        <button class="btn btn-warning" type="submit">Yes, delete my comment</button>
+      </form>
+    </div>
+
+    <div class="comment-edit-textarea" id="{{c.key().id()}}">
+      <form method="post" action="/blog/comment/edit/{{c.key().id()}}">
+        <div class="form-group">
+          <textarea class="form-control" rows="3" name="content">{{c.content}}</textarea>
+          <button class="btn btn-default" type="submit">Submit</button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+  {% endfor %}
+
+    <hr>
+    <!-- make-comment -->
+    <!-- only log in user can make comments -->
+    <!-- comment editer comes along with each post -->
+    {% if cuid %}
+    <div class="make-comment">
+      <div class="comment-edit-ctrl">
+        <button class="btn btn-default" onclick="show_edit('{{p.key().id()}}_make_comment')" type="submit">make comment</button>
+      </div>
+      <div class="comment-make-textarea" id="{{p.key().id()}}_make_comment">
+        <form method="post" action="/blog/comment/{{p.key().id()}}">
+          <textarea class="form-control" rows="3" name="content"></textarea>
+          <button class="btn btn-default" type="submit">submit</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
   </div>
-
-  {% endif %}
-
 </div>
+<hr>
+

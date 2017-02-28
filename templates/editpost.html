@@ -1,24 +1,25 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h2>edit post</h2>
+<h2>Edit Post</h2>
+<form method="post">
+  <div class="form-group">
+    <label for="Subject">Subject</label>
+    <input type="text" class="form-control" id="Subject" name="subject" value="{{subject}}">
+  </div>
+  <div class="form-group">
+    <label for="Content">Blog</label>
+    <textarea class="form-control" rows="6" name="content">{{content}}</textarea>
+  </div>
+  {% if error %}
+  <div class="alert alert-danger" role="alert">
+    <strong>{{error}}</strong>
+  </div>
+  {% endif %}    
 
-    <form method="post">
-      <label>
-        <div>subject</div>
-        <input type="text" name="subject" value="{{subject}}">
-      </label>
 
-      <label>
-        <div>blog</div>
-        <textarea name="content">{{content}}</textarea>
-      </label>
-
-      <div class="error">{{error}}</div>
-
-      <input type="submit">
-      <br>
-      <button><a href="/blog">Cancel</a></button>
-
-    </form>
+  <button type="submit" class="btn btn-default">Submit</button>
+  <br>
+  <button  class="btn btn-default edit-cancel-btn"><a href="/blog">Cancel</a></button>
+</form>
 {% endblock %}

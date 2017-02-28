@@ -1,0 +1,69 @@
+ .container {
+  max-width: 700px;
+}
+
+@media only screen and (min-width: 400px){
+  .navigation {
+    position: absolute;
+    right:0;
+    bottom:0;
+    text-align: right;
+  }
+  .header {
+  position: relative;
+}
+}
+.navigation {
+  font-size: 1.6rem;
+}
+.edit-cancel-btn {
+  position: relative;
+  top:20px;
+}
+.post-edit-ctrl {
+  text-align: right;
+  margin-top: 50px;
+}
+.post-like-show {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+.form-like-unlike, .form-like-delete {
+  float:right;
+}
+
+@media only screen and (max-width: 767px){
+  .post-like-edit {
+    margin-top: 10px;
+  }
+}
+
+.post-like-edit {
+  text-align: right;
+}
+
+.comment-author {
+  text-align: right;
+  font-size: 15px;
+  margin-bottom: 0px;
+}
+.comment-content {
+  font-size: 16px;
+}
+.comment-edit-ctrl {
+  text-align: right;
+  margin-bottom: 10px;
+}
+.form-comment-delete {
+  margin-top:10px;
+  margin-bottom: 10px;
+}
+.comment-edit-textarea, .comment-make-textarea, .form-post-delete, .form-comment-delete {
+  display: none;
+}
+.form-post-delete > button {
+  margin-top:10px;
+}
+.comment-edit-textarea button, .comment-make-textarea button{
+  margin-top: 10px;
+}

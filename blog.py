@@ -7,7 +7,7 @@ from string import letters
 
 import webapp2
 import jinja2
-
+import logging
 from google.appengine.ext import db
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -66,7 +66,7 @@ def render_post(response, post):
 
 class MainPage(BlogHandler):
   def get(self):
-      self.write('Hello, Udacity!')
+      self.write("Hello World!")
 
 
 ##### user stuff
@@ -143,91 +143,9 @@ class Post(db.Model):
         comments = Comment.all().filter('post_id = ', self.key().id())
         l_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', True).count()
         ul_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', False).count()
-        return render_str("post.html", p = self, cuid = cuid, comments = comments, l_cnt = l_cnt, ul_cnt = ul_cnt)
-
-# like == 1 == like, like == 0 == unlike
-class Like(db.Model):
-    post_id = db.IntegerProperty(required = True)
-    isLike = db.BooleanProperty(required = True)
-    user_id = db.IntegerProperty(required = True)
-    created = db.DateTimeProperty(auto_now_add = True)
-    last_modified = db.DateTimeProperty(auto_now = True)
-
-    @classmethod
-    def by_user_id(cls, user_id):
-        return Like.get_by_id(like_id)
-
-class LikePost(BlogHandler):
-    def post(self, post_id):
-        if not self.user:
-            self.redirect("/login")
-        else:
-            like = Like.all().filter('post_id = ', int(post_id)).filter('user_id = ', self.user.key().id()).get()
-            like_dislike = self.request.get('like')
-
-            if like:
-                #if the user has liked before, update
-                like.isLike = bool(int(like_dislike))
-                like.put()
-                self.redirect('/blog')
-            else:
-                #if the user never likes or dislike, insert a new data
-                like = Like(post_id = int(post_id), isLike = bool(like_dislike), user_id = self.user.key().id())
-                like.put()
-                self.redirect('/blog')
-
-
-class UnlikePost(BlogHandler):
-    def post(self, post_id):
-        if not self.user:
-            self.redirect("/login")
-        else:
-            like = Like.all().filter('post_id = ', int(post_id)).filter('user_id = ', self.user.key().id()).get()
-            if like:
-                like.delete()
-                self.redirect('/blog')
-            else:
-                self.write("you have no like data to delete")
-
-class NewComment(BlogHandler):
-    def post(self, post_id):
-        if not self.user:
-            self.redirect("/login")
-        else:
-            content = self.request.get('content')
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            new_comment = Comment(content = content, user = self.user, post_id = post.key().id())
-            new_comment.put()
-            self.write('comment add successs')
-
-class EditComment(BlogHandler):
-    def post(self, comment_id):
-        if not self.user:
-            self.redirect("/login")
-        else:
-            comment = Comment.by_id(int(comment_id))
-            if (self.user.key().id() == comment.user.key().id()):
-                content = self.request.get('content')
-                comment.content = content
-                comment.put()
-                self.redirect('/blog')
-            else:
-                self.write("you can't edit this comment")
-
-
-
-class DeleteComment(BlogHandler):
-    def post(self, comment_id):
-        if not self.user:
-            self.redirect("/login")
-        else:
-            comment = Comment.by_id(int(comment_id))
-            if (self.user.key().id() == comment.user.key().id()):
-                comment.delete()
-                self.redirect('/blog')
-            else:
-                self.write("you can't edit this comment")
+        cuid_like_record = Like.all().filter('post_id = ', self.key().id()).filter( 'user_id = ', cuid).get()
+        logging.info(cuid_like_record)
+        return render_str("post.html", p = self, cuid = cuid, comments = comments, l_cnt = l_cnt, ul_cnt = ul_cnt, cuid_like_record = cuid_like_record)
 
 class BlogFront(BlogHandler):
     def get(self):
@@ -244,78 +162,6 @@ class PostPage(BlogHandler):
             return
 
         self.render("permalink.html", post = post)
-
-class NewPost(BlogHandler):
-    def get(self):
-        if self.user:
-            self.render("newpost.html")
-        else:
-            self.redirect("/login")
-
-    def post(self):
-        if not self.user:
-            self.redirect('/blog')
-
-        subject = self.request.get('subject')
-        content = self.request.get('content')
-
-        if subject and content:
-            p = Post(parent = blog_key(), subject = subject, content = content, user = self.user)
-            p.put()
-            self.redirect('/blog/%s' % str(p.key().id()))
-        else:
-            error = "subject and content, please!"
-            self.render("newpost.html", subject=subject, content=content, error=error)
-
-class EditPost(BlogHandler):
-    def get(self, post_id):
-        if not self.user:
-            self.redirect("/login")
-        else:
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            user_id = post.user.key().id()
-            if (self.user.key().id() == user_id):
-                subject = post.subject
-                content = post.content
-                self.render("editpost.html", subject=subject, content=content)
-            else:
-                self.write('you can not edit this post')
-
-    def post(self, post_id):
-        if not self.user:
-            self.redirect("/login")
-        else:
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            user_id = post.user.key().id()
-            if (self.user.key().id() == user_id):
-                subject = self.request.get('subject')
-                content = self.request.get('content')
-                if subject and content:
-                    post.subject = subject
-                    post.content = content
-                    post.put()
-                    self.redirect('/blog/%s' % str(post.key().id()))
-                else:
-                    error = "subject and content, please!"
-                    self.render("editpost.html", subject=subject, content=content, error=error)
-            else:
-                self.write('you can not edit this post')
-
-class DeletePost(BlogHandler):
-    def post(self, post_id):
-        if not self.user:
-            self.redirect("/login")
-        else:        
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            user_id = post.user.key().id()
-            if (self.user.key().id() == user_id):
-                post.delete()
-                self.write('delete ok!')
-            else:
-                self.write('you can not delete this post')
 
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 def valid_username(username):
@@ -401,6 +247,177 @@ class Logout(BlogHandler):
         self.logout()
         self.redirect('/blog')
 
+# Implentmented class 
+
+# like == 1 == like, like == 0 == unlike
+class Like(db.Model):
+    post_id = db.IntegerProperty(required = True)
+    isLike = db.BooleanProperty(required = True)
+    user_id = db.IntegerProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
+    last_modified = db.DateTimeProperty(auto_now = True)
+
+class LikePost(BlogHandler):
+    def post(self, post_id):
+        # check isLogin first
+        if not self.user:
+            self.redirect("/login")
+        else:
+            # prohibit login user from liking their own posts
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            if (post.user.key().id() == self.user.key().id()):
+                error_msg = "you can't like your post"
+                self.render('redirect.html', error_msg = error_msg)
+            else:
+                # see if the user has already liked this post (if there's a **like** data related to this post and this user)
+                like = Like.all().filter('post_id = ', int(post_id)).filter('user_id = ', self.user.key().id()).get()
+                like_dislike = self.request.get('like')
+
+                if like:
+                    #if the user has liked before, update the data with latest value
+                    like.isLike = bool(int(like_dislike))
+                    like.put()
+                    self.redirect('/blog')
+                else:
+                    #if the user never likes or dislike, insert a new data with submitted value
+                    like = Like(post_id = int(post_id), isLike = bool(like_dislike), user_id = self.user.key().id())
+                    like.put()
+                    self.redirect('/blog')
+
+class DeleteLike(BlogHandler):
+    def post(self, post_id):
+        if not self.user:
+            self.redirect("/login")
+        else:
+            like = Like.all().filter('post_id = ', int(post_id)).filter('user_id = ', self.user.key().id()).get()
+            if like:
+                like.delete()
+                self.redirect('/blog')
+            else:
+                error_msg = "you have no data to delete"
+                self.render('redirect.html', error_msg = error_msg)
+
+class NewComment(BlogHandler):
+    def post(self, post_id):
+        if not self.user:
+            self.redirect("/login")
+        else:
+            content = self.request.get('content')
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            new_comment = Comment(content = content, user = self.user, post_id = post.key().id())
+            new_comment.put()
+            self.redirect("/blog")
+
+class EditComment(BlogHandler):
+    def post(self, comment_id):
+        if not self.user:
+            self.redirect("/login")
+        else:
+            comment = Comment.by_id(int(comment_id))
+            # a user can only edit his own comment
+            if (self.user.key().id() == comment.user.key().id()):
+                content = self.request.get('content')
+                comment.content = content
+                comment.put()
+                self.redirect('/blog')
+            else:
+                error_msg = "you can't edit this comment"
+                self.render('redirect.html', error_msg = error_msg)
+
+class DeleteComment(BlogHandler):
+    def post(self, comment_id):
+        if not self.user:
+            self.redirect("/login")
+        else:
+            comment = Comment.by_id(int(comment_id))
+            # a user can only delete his own comment
+            if (self.user.key().id() == comment.user.key().id()):
+                comment.delete()
+                self.redirect('/blog')
+            else:
+                error_msg = "you can't delete this comment"
+                self.render('redirect.html', error_msg = error_msg)
+
+
+class NewPost(BlogHandler):
+    def get(self):
+        if self.user:
+            self.render("newpost.html")
+        else:
+            self.redirect("/login")
+
+    def post(self):
+        if not self.user:
+            self.redirect('/blog')
+
+        subject = self.request.get('subject')
+        content = self.request.get('content')
+
+        if subject and content:
+            p = Post(parent = blog_key(), subject = subject, content = content, user = self.user)
+            p.put()
+            self.redirect('/blog/%s' % str(p.key().id()))
+        else:
+            error = "subject and content, please!"
+            self.render("newpost.html", subject=subject, content=content, error=error)
+
+class EditPost(BlogHandler):
+    def get(self, post_id):
+        if not self.user:
+            self.redirect("/login")
+        else:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            #only the creator can edit their posts
+            if (self.user.key().id() == post.user.key().id()):
+                subject = post.subject
+                content = post.content
+                self.render("editpost.html", subject=subject, content=content)
+            else:
+                #only the creator can enter the edit page 
+                error_msg = "you can't edit this post"
+                self.render('redirect.html', error_msg = error_msg)
+
+
+    def post(self, post_id):
+        if not self.user:
+            self.redirect("/login")
+        else:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            #only the creator can edit their posts
+            if (self.user.key().id() == post.user.key().id()):
+                subject = self.request.get('subject')
+                content = self.request.get('content')
+                if subject and content:
+                    post.subject = subject
+                    post.content = content
+                    post.put()
+                    self.redirect('/blog/%s' % str(post.key().id()))
+                else:
+                    error = "subject and content, please!"
+                    self.render("editpost.html", subject=subject, content=content, error=error)
+            else:
+                error_msg = "you can't edit this post"
+                self.render('redirect.html', error_msg = error_msg)
+
+
+class DeletePost(BlogHandler):
+    def post(self, post_id):
+        if not self.user:
+            self.redirect("/login")
+        else:        
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            #only the creator can edit their posts
+            if (self.user.key().id() == post.user.key().id()):
+                post.delete()
+                self.redirect('/blog')
+            else:
+                error_msg = "you can't delete this post"
+                self.render('redirect.html', error_msg = error_msg)
 
 
 
@@ -414,7 +431,7 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/blog/comment/edit/([0-9]+)', EditComment),
                                ('/blog/comment/delete/([0-9]+)', DeleteComment),
                                ('/blog/like/([0-9]+)', LikePost),
-                               ('/blog/delete_like/([0-9]+)', UnlikePost),
+                               ('/blog/delete_like/([0-9]+)', DeleteLike),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),

@@ -1,44 +1,31 @@
 <!DOCTYPE html>
-
-<html>
-  <head>
-    <title>Login</title>
-    <style type="text/css">
-      .label {text-align: right}
-      .error {color: red}
-    </style>
-
-  </head>
-
-  <body>
-    <h2>Login</h2>
-    <form method="post">
-      <table>
-        <tr>
-          <td class="label">
-            Username
-          </td>
-          <td>
-            <input type="text" name="username" value="{{username}}">
-          </td>
-        </tr>
-
-        <tr>
-          <td class="label">
-            Password
-          </td>
-          <td>
-            <input type="password" name="password" value="">
-          </td>
-        </tr>
-      </table>
-
-      <div class="error">
-        {{error}}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <title>Blog Log in</title>
+  <!-- Bootstrap core CSS -->
+  <link href="static/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom styles for this template -->
+  <link href="static/signin.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <form class="form-signin" method="post">
+      <h2 class="form-signin-heading">Please Log in</h2>
+      <label for="inputUsername" class="sr-only">Username</label>
+      <input type="text" id="inputUsername" class="form-control" placeholder="Username" name="username" required autofocus>
+      <label for="inputPassword" class="sr-only">Password</label>
+      <input type="password" id="inputPassword" class="form-control" placeholder="Password" name="password" required>
+      {% if error %}
+      <div class="alert alert-danger" role="alert">
+        <strong>{{error}}</strong>
       </div>
-
-      <input type="submit">
+      {% endif %}
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Log in</button>
     </form>
-  </body>
-
+  </div>
+</body>
 </html>
