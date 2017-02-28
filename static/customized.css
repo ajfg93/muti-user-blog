@@ -61,7 +61,7 @@
 .comment-edit-textarea, .comment-make-textarea, .form-post-delete, .form-comment-delete {
   display: none;
 }
-.form-post-delete > button {
+.form-post-delete {
   margin-top:10px;
 }
 .comment-edit-textarea button, .comment-make-textarea button{

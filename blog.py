@@ -176,10 +176,10 @@ class PostPage(BlogHandler):
         post = db.get(key)
 
         if not post:
-            self.error(404)
-            return
+            error_msg = "Don't have this post"
+            self.redirect('/blog', error_msg = error_msg)
 
-        self.render("permalink.html", post = post)
+        self.render("permalink.html", post = post, scrollPosition = 0)
 
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 def valid_username(username):
@@ -454,7 +454,17 @@ class DeletePost(BlogHandler):
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
             #only the creator can edit their posts
+            #delete related comments and like records
             if (self.user.key().id() == post.user.key().id()):
+                post_id = post.key().id()
+                #delete all related comments
+                comments = Comment.all().filter('post_id = ', post_id )
+                for c in comments:
+                    c.delete()
+                #delete all related like records
+                likes = Like.all().filter('post_id = ', post_id)
+                for l in likes:
+                    l.delete()
                 post.delete()
                 self.redirect('/blog')
             else:
