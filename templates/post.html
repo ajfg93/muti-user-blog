@@ -13,7 +13,10 @@
       <button  class="btn btn-default"><a href="/blog/edit/{{p.key().id()}}">edit</a></button>
       <button  class="btn btn-default delete-post-btn" onclick="show_edit('{{p.key().id()}}_delete_post')">delete</button>
       <form method="post" id="{{p.key().id()}}_delete_post" class="form-post-delete" action="/blog/delete/{{p.key().id()}}">
-        <button  class="btn btn-warning" type="submit">Yes, delete my post.</button>
+        <div class="form-group">
+           <input type="hidden" name="scrollPosition" value="" class="scrollPosition">
+           <button  class="btn btn-warning" onclick="getScroll('', this)" type="button" >Yes, delete my post.</button>
+        </div>
       </form>
     </div>
     {% endif %}
@@ -26,7 +29,7 @@
        &nbsp;&nbsp;
        <i class="fa fa-thumbs-o-down fa-2" aria-hidden="true"> {{ul_cnt}}</i>
      </div>
-     {% if cuid %}
+     {% if cuid and cuid != p.user.key().id()%}
      <!-- show if the user likes or dislikes the post -->
      <div class="col-xs-8 col-sm-4">
         {% if cuid_like_record.isLike == True %}        
@@ -42,21 +45,25 @@
      <div class="col-xs-12 col-sm-6 post-like-edit">
        <form method="post" class="form-like-delete" action="/blog/delete_like/{{p.key().id()}}">
         <div class="form-group">
-          <button class="btn btn-default" type="submit">delete my like record</button> 
+          <input type="hidden" name="scrollPosition" value="" class="scrollPosition">
+          <button class="btn btn-default"  onclick="getScroll('', this)" type="button">delete my like record</button> 
         </div>
       </form>
       <form method="post" class="form-inline form-like-unlike" action="/blog/like/{{p.key().id()}}">
         <div class="form-group">
           <input type="hidden" name="like" value="0">
-          <button class="btn btn-default" type="submit">Unlike</button>
+          <input type="hidden" name="scrollPosition" value="" class="scrollPosition">
+          <button class="btn btn-default"  onclick="getScroll('', this)" type="button">Unlike</button>
         </div>
       </form>    
       <form method="post" class="form-inline form-like-like" action="/blog/like/{{p.key().id()}}">
         <div class="form-group">
           <input type="hidden" name="like" value="1">
-          <button class="btn btn-default" type="submit">Like</button>
+          <input type="hidden" name="scrollPosition" value="" class="scrollPosition">
+          <button class="btn btn-default" type="button" onclick="getScroll('', this)">Like</button>
         </div>
       </form>
+
     </div>
     {% endif %}
   </div>
@@ -83,7 +90,10 @@
       <button  class="btn btn-default" onclick="show_edit('{{c.key().id()}}_delete_comment')">delete</button>
       <br>
       <form method="post" class="form-comment-delete" id="{{c.key().id()}}_delete_comment" action="/blog/comment/delete/{{c.key().id()}}">
-        <button class="btn btn-warning" type="submit">Yes, delete my comment</button>
+        <div>
+          <input type="hidden" name="scrollPosition" value="" class="scrollPosition">
+          <button class="btn btn-warning"  onclick="getScroll('', this)" type="button">Yes, delete my comment</button>
+        </div>
       </form>
     </div>
 
@@ -91,7 +101,8 @@
       <form method="post" action="/blog/comment/edit/{{c.key().id()}}">
         <div class="form-group">
           <textarea class="form-control" rows="3" name="content">{{c.content}}</textarea>
-          <button class="btn btn-default" type="submit">Submit</button>
+          <input type="hidden" name="scrollPosition" value="" class="scrollPosition">
+          <button class="btn btn-default"  onclick="getScroll('', this)" type="button">Submit</button>
         </div>
       </form>
     </div>
@@ -109,8 +120,11 @@
       </div>
       <div class="comment-make-textarea" id="{{p.key().id()}}_make_comment">
         <form method="post" action="/blog/comment/{{p.key().id()}}">
-          <textarea class="form-control" rows="3" name="content"></textarea>
-          <button class="btn btn-default" type="submit">submit</button>
+          <div class="form-group">
+            <textarea class="form-control" rows="3" name="content"></textarea>
+            <input type="hidden" name="scrollPosition" value="" class="scrollPosition">
+            <button class="btn btn-default" onclick="getScroll('', this)" type="button">submit</button>
+          </div>
         </form>
       </div>
     </div>

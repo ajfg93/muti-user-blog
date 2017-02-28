@@ -45,6 +45,18 @@ class BlogHandler(webapp2.RequestHandler):
             'Set-Cookie',
             '%s=%s; Path=/' % (name, cookie_val))
 
+    #set scroll position cookie   
+    def set_unsecure_cookie(self, val):
+        name = 's_position'
+        cookie_str = str('%s=%s; Path=/' % (name, val))
+        self.response.headers.add_header('Set-Cookie', cookie_str)
+
+    #read scroll position cookie   
+    def read_unsecure_cookie(self):
+        name = 's_position'
+        cookie_val = self.request.cookies.get(name)
+        return cookie_val
+
     def read_secure_cookie(self, name):
         cookie_val = self.request.cookies.get(name)
         return cookie_val and check_secure_val(cookie_val)
@@ -66,7 +78,7 @@ def render_post(response, post):
 
 class MainPage(BlogHandler):
   def get(self):
-      self.write("Hello World!")
+      self.render("test.html", test = 123)
 
 
 ##### user stuff
@@ -144,13 +156,19 @@ class Post(db.Model):
         l_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', True).count()
         ul_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', False).count()
         cuid_like_record = Like.all().filter('post_id = ', self.key().id()).filter( 'user_id = ', cuid).get()
-        logging.info(cuid_like_record)
         return render_str("post.html", p = self, cuid = cuid, comments = comments, l_cnt = l_cnt, ul_cnt = ul_cnt, cuid_like_record = cuid_like_record)
+
+
 
 class BlogFront(BlogHandler):
     def get(self):
         posts = Post.all().order('-created')
-        self.render('front.html', posts = posts)
+        scrollPosition = self.read_unsecure_cookie()
+        if scrollPosition:
+            scrollPosition = int(scrollPosition)
+        else:
+            scrollPosition = 0
+        self.render('front.html', posts = posts, scrollPosition = scrollPosition)
 
 class PostPage(BlogHandler):
     def get(self, post_id):
@@ -259,6 +277,10 @@ class Like(db.Model):
 
 class LikePost(BlogHandler):
     def post(self, post_id):
+        #write scoll bar height in cookie
+        s_postion = self.request.get('scrollPosition')
+        self.set_unsecure_cookie(s_postion)
+
         # check isLogin first
         if not self.user:
             self.redirect("/login")
@@ -287,6 +309,10 @@ class LikePost(BlogHandler):
 
 class DeleteLike(BlogHandler):
     def post(self, post_id):
+        #write scoll bar height in cookie
+        s_postion = self.request.get('scrollPosition')
+        self.set_unsecure_cookie(s_postion)
+
         if not self.user:
             self.redirect("/login")
         else:
@@ -300,6 +326,10 @@ class DeleteLike(BlogHandler):
 
 class NewComment(BlogHandler):
     def post(self, post_id):
+        #write scoll bar height in cookie
+        s_postion = self.request.get('scrollPosition')
+        self.set_unsecure_cookie(s_postion)
+
         if not self.user:
             self.redirect("/login")
         else:
@@ -312,6 +342,10 @@ class NewComment(BlogHandler):
 
 class EditComment(BlogHandler):
     def post(self, comment_id):
+        #write scoll bar height in cookie
+        s_postion = self.request.get('scrollPosition')
+        self.set_unsecure_cookie(s_postion)
+
         if not self.user:
             self.redirect("/login")
         else:
@@ -328,6 +362,10 @@ class EditComment(BlogHandler):
 
 class DeleteComment(BlogHandler):
     def post(self, comment_id):
+        #write scoll bar height in cookie
+        s_postion = self.request.get('scrollPosition')
+        self.set_unsecure_cookie(s_postion)
+
         if not self.user:
             self.redirect("/login")
         else:
@@ -406,6 +444,10 @@ class EditPost(BlogHandler):
 
 class DeletePost(BlogHandler):
     def post(self, post_id):
+        #write scoll bar height in cookie
+        s_postion = self.request.get('scrollPosition')
+        self.set_unsecure_cookie(s_postion)
+        
         if not self.user:
             self.redirect("/login")
         else:        

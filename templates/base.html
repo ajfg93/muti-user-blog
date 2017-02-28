@@ -39,6 +39,7 @@
     </div>
   </div>
 <script type="text/javascript">
+  document.body.scrollTop = {{scrollPosition}};
   // toggle the comment editer form
   function show_edit(idName){
     var c_editer = document.getElementById(idName);
@@ -47,8 +48,16 @@
     }else{
       c_editer.style.display = "block";
     }
-  }
+  } 
 
+  function getScroll(param, object){
+
+    var scrollInputs = document.getElementsByClassName('scrollPosition');
+    for (var i = 0; i < scrollInputs.length; i++) {
+      scrollInputs[i].value = document.body.scrollTop;
+    }
+    object.parentNode.parentNode.submit();
+  }
 
 </script>
 </body>
