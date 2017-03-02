@@ -14,7 +14,7 @@ A blog system with post, comment and like(dislike) functionality, provided with 
 ##install
 public address:  http://tianblog123.appspot.com/blog
 
-run locally: 
+###run locally: 
 ```
 git clone https://github.com/GoogleCloudPlatform/python-docs-samples
 cd python-docs-samples/appengine/standard/
