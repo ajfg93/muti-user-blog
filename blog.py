@@ -177,7 +177,7 @@ class PostPage(BlogHandler):
 
         if not post:
             error_msg = "Don't have this post"
-            self.redirect('/blog', error_msg = error_msg)
+            return   self.redirect('/blog', error_msg = error_msg)
 
         self.render("permalink.html", post = post, scrollPosition = 0)
 
@@ -242,7 +242,7 @@ class Register(Signup):
             u.put()
 
             self.login(u)
-            self.redirect('/blog')
+            return self.redirect('/blog')
 
 class Login(BlogHandler):
     def get(self):
@@ -255,7 +255,7 @@ class Login(BlogHandler):
         u = User.login(username, password)
         if u:
             self.login(u)
-            self.redirect('/blog')
+            return self.redirect('/blog')
         else:
             msg = 'Invalid login'
             self.render('login-form.html', error = msg)
@@ -263,7 +263,7 @@ class Login(BlogHandler):
 class Logout(BlogHandler):
     def get(self):
         self.logout()
-        self.redirect('/blog')
+        return self.redirect('/blog')
 
 # Implentmented class 
 
@@ -283,7 +283,7 @@ class LikePost(BlogHandler):
 
         # check isLogin first
         if not self.user:
-            self.redirect("/login")
+           return self.redirect("/login")
         else:
             # prohibit login user from liking their own posts
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
@@ -300,12 +300,12 @@ class LikePost(BlogHandler):
                     #if the user has liked before, update the data with latest value
                     like.isLike = bool(int(like_dislike))
                     like.put()
-                    self.redirect('/blog')
+                    return self.redirect('/blog')
                 else:
                     #if the user never likes or dislike, insert a new data with submitted value
                     like = Like(post_id = int(post_id), isLike = bool(like_dislike), user_id = self.user.key().id())
                     like.put()
-                    self.redirect('/blog')
+                    return self.redirect('/blog')
 
 class DeleteLike(BlogHandler):
     def post(self, post_id):
@@ -314,12 +314,12 @@ class DeleteLike(BlogHandler):
         self.set_unsecure_cookie(s_postion)
 
         if not self.user:
-            self.redirect("/login")
+            return self.redirect("/login")
         else:
             like = Like.all().filter('post_id = ', int(post_id)).filter('user_id = ', self.user.key().id()).get()
             if like:
                 like.delete()
-                self.redirect('/blog')
+                return self.redirect('/blog')
             else:
                 error_msg = "you have no data to delete"
                 self.render('redirect.html', error_msg = error_msg)
@@ -331,14 +331,14 @@ class NewComment(BlogHandler):
         self.set_unsecure_cookie(s_postion)
 
         if not self.user:
-            self.redirect("/login")
+            return self.redirect("/login")
         else:
             content = self.request.get('content')
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
             new_comment = Comment(content = content, user = self.user, post_id = post.key().id())
             new_comment.put()
-            self.redirect("/blog")
+            return self.redirect("/blog")
 
 class EditComment(BlogHandler):
     def post(self, comment_id):
@@ -347,7 +347,7 @@ class EditComment(BlogHandler):
         self.set_unsecure_cookie(s_postion)
 
         if not self.user:
-            self.redirect("/login")
+            return self.redirect("/login")
         else:
             comment = Comment.by_id(int(comment_id))
             # a user can only edit his own comment
@@ -355,7 +355,7 @@ class EditComment(BlogHandler):
                 content = self.request.get('content')
                 comment.content = content
                 comment.put()
-                self.redirect('/blog')
+                return self.redirect('/blog')
             else:
                 error_msg = "you can't edit this comment"
                 self.render('redirect.html', error_msg = error_msg)
@@ -367,13 +367,13 @@ class DeleteComment(BlogHandler):
         self.set_unsecure_cookie(s_postion)
 
         if not self.user:
-            self.redirect("/login")
+            return self.redirect("/login")
         else:
             comment = Comment.by_id(int(comment_id))
             # a user can only delete his own comment
             if (self.user.key().id() == comment.user.key().id()):
                 comment.delete()
-                self.redirect('/blog')
+                return self.redirect('/blog')
             else:
                 error_msg = "you can't delete this comment"
                 self.render('redirect.html', error_msg = error_msg)
@@ -384,11 +384,11 @@ class NewPost(BlogHandler):
         if self.user:
             self.render("newpost.html")
         else:
-            self.redirect("/login")
+            return self.redirect("/login")
 
     def post(self):
         if not self.user:
-            self.redirect('/blog')
+            return self.redirect('/blog')
 
         subject = self.request.get('subject')
         content = self.request.get('content')
@@ -396,7 +396,7 @@ class NewPost(BlogHandler):
         if subject and content:
             p = Post(parent = blog_key(), subject = subject, content = content, user = self.user)
             p.put()
-            self.redirect('/blog/%s' % str(p.key().id()))
+            return self.redirect('/blog/%s' % str(p.key().id()))
         else:
             error = "subject and content, please!"
             self.render("newpost.html", subject=subject, content=content, error=error)
@@ -404,7 +404,7 @@ class NewPost(BlogHandler):
 class EditPost(BlogHandler):
     def get(self, post_id):
         if not self.user:
-            self.redirect("/login")
+            return self.redirect("/login")
         else:
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
@@ -421,7 +421,7 @@ class EditPost(BlogHandler):
 
     def post(self, post_id):
         if not self.user:
-            self.redirect("/login")
+            return self.redirect("/login")
         else:
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
@@ -433,7 +433,7 @@ class EditPost(BlogHandler):
                     post.subject = subject
                     post.content = content
                     post.put()
-                    self.redirect('/blog/%s' % str(post.key().id()))
+                    return self.redirect('/blog/%s' % str(post.key().id()))
                 else:
                     error = "subject and content, please!"
                     self.render("editpost.html", subject=subject, content=content, error=error)
@@ -449,7 +449,7 @@ class DeletePost(BlogHandler):
         self.set_unsecure_cookie(s_postion)
         
         if not self.user:
-            self.redirect("/login")
+            return self.redirect("/login")
         else:        
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
@@ -466,7 +466,7 @@ class DeletePost(BlogHandler):
                 for l in likes:
                     l.delete()
                 post.delete()
-                self.redirect('/blog')
+                return self.redirect('/blog')
             else:
                 error_msg = "you can't delete this post"
                 self.render('redirect.html', error_msg = error_msg)
