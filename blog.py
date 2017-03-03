@@ -16,6 +16,8 @@ jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
 
 secret = 'fart'
 
+
+
 def render_str(template, **params):
     t = jinja_env.get_template(template)
     return t.render(params)
@@ -28,6 +30,103 @@ def check_secure_val(secure_val):
     if secure_val == make_secure_val(val):
         return val
 
+##### user related functions
+def make_salt(length = 5):
+    return ''.join(random.choice(letters) for x in xrange(length))
+
+def make_pw_hash(name, pw, salt = None):
+    if not salt:
+        salt = make_salt()
+    h = hashlib.sha256(name + pw + salt).hexdigest()
+    return '%s,%s' % (salt, h)
+
+def valid_pw(name, password, h):
+    salt = h.split(',')[0]
+    return h == make_pw_hash(name, password, salt)
+
+def users_key(group = 'default'):
+    return db.Key.from_path('users', group)
+
+## Regular expression match functions
+USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+def valid_username(username):
+    return username and USER_RE.match(username)
+
+PASS_RE = re.compile(r"^.{3,20}$")
+def valid_password(password):
+    return password and PASS_RE.match(password)
+
+EMAIL_RE  = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
+def valid_email(email):
+    return not email or EMAIL_RE.match(email)
+
+from models import User, Post, Comment, Like
+####Models
+# class User(db.Model):
+#     name = db.StringProperty(required = True)
+#     pw_hash = db.StringProperty(required = True)
+#     email = db.StringProperty()
+
+#     @classmethod
+#     def by_id(cls, uid):
+#         return User.get_by_id(uid, parent = users_key())
+
+#     @classmethod
+#     def by_name(cls, name):
+#         u = User.all().filter('name =', name).get()
+#         return u
+
+#     @classmethod
+#     def register(cls, name, pw, email = None):
+#         pw_hash = make_pw_hash(name, pw)
+#         return User(parent = users_key(),
+#                     name = name,
+#                     pw_hash = pw_hash,
+#                     email = email)
+
+#     @classmethod
+#     def login(cls, name, pw):
+#         u = cls.by_name(name)
+#         if u and valid_pw(name, pw, u.pw_hash):
+#             return u
+
+# def blog_key(name = 'default'):
+#     return db.Key.from_path('blogs', name)
+
+# class Post(db.Model):
+#     subject = db.StringProperty(required = True)
+#     content = db.TextProperty(required = True)
+#     user = db.ReferenceProperty(User)
+#     created = db.DateTimeProperty(auto_now_add = True)
+#     last_modified = db.DateTimeProperty(auto_now = True)
+
+#     def render(self, cuid = None):
+#         self._render_text = self.content.replace('\n', '<br>')
+#         comments = Comment.all().filter('post_id = ', self.key().id())
+#         l_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', True).count()
+#         ul_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', False).count()
+#         cuid_like_record = Like.all().filter('post_id = ', self.key().id()).filter( 'user_id = ', cuid).get()
+#         return render_str("post.html", p = self, cuid = cuid, comments = comments, l_cnt = l_cnt, ul_cnt = ul_cnt, cuid_like_record = cuid_like_record)
+
+# class Comment(db.Model):
+#     content = db.TextProperty(required = True)
+#     user = db.ReferenceProperty(User)
+#     post_id = db.IntegerProperty(required = True)
+#     created = db.DateTimeProperty(auto_now_add = True)
+#     last_modified = db.DateTimeProperty(auto_now = True)
+
+#     @classmethod
+#     def by_id(cls, comment_id):
+#         return Comment.get_by_id(comment_id)
+
+# class Like(db.Model):
+#     post_id = db.IntegerProperty(required = True)
+#     isLike = db.BooleanProperty(required = True)
+#     user_id = db.IntegerProperty(required = True)
+#     created = db.DateTimeProperty(auto_now_add = True)
+#     last_modified = db.DateTimeProperty(auto_now = True)
+
+## Handlers
 class BlogHandler(webapp2.RequestHandler):
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
@@ -72,93 +171,9 @@ class BlogHandler(webapp2.RequestHandler):
         uid = self.read_secure_cookie('user_id')
         self.user = uid and User.by_id(int(uid))
 
-def render_post(response, post):
-    response.out.write('<b>' + post.subject + '</b><br>')
-    response.out.write(post.content)
-
 class MainPage(BlogHandler):
   def get(self):
       self.render("test.html", test = 123)
-
-
-##### user stuff
-def make_salt(length = 5):
-    return ''.join(random.choice(letters) for x in xrange(length))
-
-def make_pw_hash(name, pw, salt = None):
-    if not salt:
-        salt = make_salt()
-    h = hashlib.sha256(name + pw + salt).hexdigest()
-    return '%s,%s' % (salt, h)
-
-def valid_pw(name, password, h):
-    salt = h.split(',')[0]
-    return h == make_pw_hash(name, password, salt)
-
-def users_key(group = 'default'):
-    return db.Key.from_path('users', group)
-
-class User(db.Model):
-    name = db.StringProperty(required = True)
-    pw_hash = db.StringProperty(required = True)
-    email = db.StringProperty()
-
-    @classmethod
-    def by_id(cls, uid):
-        return User.get_by_id(uid, parent = users_key())
-
-    @classmethod
-    def by_name(cls, name):
-        u = User.all().filter('name =', name).get()
-        return u
-
-    @classmethod
-    def register(cls, name, pw, email = None):
-        pw_hash = make_pw_hash(name, pw)
-        return User(parent = users_key(),
-                    name = name,
-                    pw_hash = pw_hash,
-                    email = email)
-
-    @classmethod
-    def login(cls, name, pw):
-        u = cls.by_name(name)
-        if u and valid_pw(name, pw, u.pw_hash):
-            return u
-
-
-##### blog stuff
-
-def blog_key(name = 'default'):
-    return db.Key.from_path('blogs', name)
-
-class Comment(db.Model):
-    content = db.TextProperty(required = True)
-    user = db.ReferenceProperty(User)
-    post_id = db.IntegerProperty(required = True)
-    created = db.DateTimeProperty(auto_now_add = True)
-    last_modified = db.DateTimeProperty(auto_now = True)
-
-    @classmethod
-    def by_id(cls, comment_id):
-        return Comment.get_by_id(comment_id)
-
-class Post(db.Model):
-    subject = db.StringProperty(required = True)
-    content = db.TextProperty(required = True)
-    user = db.ReferenceProperty(User)
-    created = db.DateTimeProperty(auto_now_add = True)
-    last_modified = db.DateTimeProperty(auto_now = True)
-
-    def render(self, cuid = None):
-        self._render_text = self.content.replace('\n', '<br>')
-        comments = Comment.all().filter('post_id = ', self.key().id())
-        l_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', True).count()
-        ul_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', False).count()
-        cuid_like_record = Like.all().filter('post_id = ', self.key().id()).filter( 'user_id = ', cuid).get()
-        return render_str("post.html", p = self, cuid = cuid, comments = comments, l_cnt = l_cnt, ul_cnt = ul_cnt, cuid_like_record = cuid_like_record)
-
-
 
 class BlogFront(BlogHandler):
     def get(self):
@@ -178,20 +193,7 @@ class PostPage(BlogHandler):
         if not post:
             error_msg = "Don't have this post"
             return   self.redirect('/blog', error_msg = error_msg)
-
         self.render("permalink.html", post = post, scrollPosition = 0)
-
-USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
-def valid_username(username):
-    return username and USER_RE.match(username)
-
-PASS_RE = re.compile(r"^.{3,20}$")
-def valid_password(password):
-    return password and PASS_RE.match(password)
-
-EMAIL_RE  = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
-def valid_email(email):
-    return not email or EMAIL_RE.match(email)
 
 class Signup(BlogHandler):
     def get(self):
@@ -265,16 +267,9 @@ class Logout(BlogHandler):
         self.logout()
         return self.redirect('/blog')
 
+
 # Implentmented class 
-
 # like == 1 == like, like == 0 == unlike
-class Like(db.Model):
-    post_id = db.IntegerProperty(required = True)
-    isLike = db.BooleanProperty(required = True)
-    user_id = db.IntegerProperty(required = True)
-    created = db.DateTimeProperty(auto_now_add = True)
-    last_modified = db.DateTimeProperty(auto_now = True)
-
 class LikePost(BlogHandler):
     def post(self, post_id):
         #write scoll bar height in cookie
