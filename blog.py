@@ -141,7 +141,7 @@ def post_exists(function):
 
 def user_owns_post(function):
     @wraps(function)
-    def wrapper(self, post_id, post):
+    def wrapper(self, post_id, post = None):
         if (post.user.key().id() == self.user.key().id()):
             return function(self, post_id, post)
         else:
@@ -151,7 +151,7 @@ def user_owns_post(function):
 
 def user_not_owns_post(function):
     @wraps(function)
-    def wrapper(self, post_id, post):
+    def wrapper(self, post_id, post = None):
         if (post.user.key().id() != self.user.key().id()):
             return function(self, post_id, post)
         else:
@@ -172,7 +172,7 @@ def comment_exists(function):
 
 def user_owns_comment(function):
     @wraps(function)
-    def wrapper(self, comment_id, comment):
+    def wrapper(self, comment_id, comment = None):
         if (self.user.key().id() == comment.user.key().id()):
             return function(self, comment_id, comment)
         else:
@@ -190,7 +190,7 @@ def scrollBar_position(function):
 
 def user_logged_in(function):
     @wraps(function)
-    def wrapper(self, post_id):
+    def wrapper(self, post_id = None):
         if self.user:
             return function(self, post_id)
         else:
@@ -393,18 +393,18 @@ class DeleteComment(BlogHandler):
     @user_logged_in
     @comment_exists
     @user_owns_comment
-    def post(self, comment_id, comments):
+    def post(self, comment_id, comment):
         comment.delete()
         return self.redirect('/blog')
           
 
 class NewPost(BlogHandler):
     @user_logged_in
-    def get(self):
+    def get(self, post_id = None):
         self.render("newpost.html")
 
     @user_logged_in
-    def post(self):
+    def post(self, post_id = None):
         subject = self.request.get('subject')
         content = self.request.get('content')
         if subject and content:
@@ -427,7 +427,7 @@ class EditPost(BlogHandler):
     @user_logged_in
     @post_exists
     @user_owns_post
-    def post(self, post_id):
+    def post(self, post_id, post):
         subject = self.request.get('subject')
         content = self.request.get('content')
         if subject and content:
