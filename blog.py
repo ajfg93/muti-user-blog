@@ -9,13 +9,14 @@ import webapp2
 import jinja2
 import logging
 from google.appengine.ext import db
+from functools import wraps
 
+
+# Jinja environment initialize
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
-
 secret = 'fart'
-
 
 
 def render_str(template, **params):
@@ -60,71 +61,141 @@ EMAIL_RE  = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
 def valid_email(email):
     return not email or EMAIL_RE.match(email)
 
-from models import User, Post, Comment, Like
 ####Models
-# class User(db.Model):
-#     name = db.StringProperty(required = True)
-#     pw_hash = db.StringProperty(required = True)
-#     email = db.StringProperty()
+class User(db.Model):
+    name = db.StringProperty(required = True)
+    pw_hash = db.StringProperty(required = True)
+    email = db.StringProperty()
 
-#     @classmethod
-#     def by_id(cls, uid):
-#         return User.get_by_id(uid, parent = users_key())
+    @classmethod
+    def by_id(cls, uid):
+        return User.get_by_id(uid, parent = users_key())
 
-#     @classmethod
-#     def by_name(cls, name):
-#         u = User.all().filter('name =', name).get()
-#         return u
+    @classmethod
+    def by_name(cls, name):
+        u = User.all().filter('name =', name).get()
+        return u
 
-#     @classmethod
-#     def register(cls, name, pw, email = None):
-#         pw_hash = make_pw_hash(name, pw)
-#         return User(parent = users_key(),
-#                     name = name,
-#                     pw_hash = pw_hash,
-#                     email = email)
+    @classmethod
+    def register(cls, name, pw, email = None):
+        pw_hash = make_pw_hash(name, pw)
+        return User(parent = users_key(),
+                    name = name,
+                    pw_hash = pw_hash,
+                    email = email)
 
-#     @classmethod
-#     def login(cls, name, pw):
-#         u = cls.by_name(name)
-#         if u and valid_pw(name, pw, u.pw_hash):
-#             return u
+    @classmethod
+    def login(cls, name, pw):
+        u = cls.by_name(name)
+        if u and valid_pw(name, pw, u.pw_hash):
+            return u
 
-# def blog_key(name = 'default'):
-#     return db.Key.from_path('blogs', name)
+def blog_key(name = 'default'):
+    return db.Key.from_path('blogs', name)
 
-# class Post(db.Model):
-#     subject = db.StringProperty(required = True)
-#     content = db.TextProperty(required = True)
-#     user = db.ReferenceProperty(User)
-#     created = db.DateTimeProperty(auto_now_add = True)
-#     last_modified = db.DateTimeProperty(auto_now = True)
+class Post(db.Model):
+    subject = db.StringProperty(required = True)
+    content = db.TextProperty(required = True)
+    user = db.ReferenceProperty(User)
+    created = db.DateTimeProperty(auto_now_add = True)
+    last_modified = db.DateTimeProperty(auto_now = True)
 
-#     def render(self, cuid = None):
-#         self._render_text = self.content.replace('\n', '<br>')
-#         comments = Comment.all().filter('post_id = ', self.key().id())
-#         l_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', True).count()
-#         ul_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', False).count()
-#         cuid_like_record = Like.all().filter('post_id = ', self.key().id()).filter( 'user_id = ', cuid).get()
-#         return render_str("post.html", p = self, cuid = cuid, comments = comments, l_cnt = l_cnt, ul_cnt = ul_cnt, cuid_like_record = cuid_like_record)
+    def render(self, cuid = None):
+        self._render_text = self.content.replace('\n', '<br>')
+        comments = Comment.all().filter('post_id = ', self.key().id())
+        l_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', True).count()
+        ul_cnt = Like.all().filter('post_id = ', self.key().id()).filter( 'isLike = ', False).count()
+        cuid_like_record = Like.all().filter('post_id = ', self.key().id()).filter( 'user_id = ', cuid).get()
+        return render_str("post.html", p = self, cuid = cuid, comments = comments, l_cnt = l_cnt, ul_cnt = ul_cnt, cuid_like_record = cuid_like_record)
 
-# class Comment(db.Model):
-#     content = db.TextProperty(required = True)
-#     user = db.ReferenceProperty(User)
-#     post_id = db.IntegerProperty(required = True)
-#     created = db.DateTimeProperty(auto_now_add = True)
-#     last_modified = db.DateTimeProperty(auto_now = True)
+class Comment(db.Model):
+    content = db.TextProperty(required = True)
+    user = db.ReferenceProperty(User)
+    post_id = db.IntegerProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
+    last_modified = db.DateTimeProperty(auto_now = True)
 
-#     @classmethod
-#     def by_id(cls, comment_id):
-#         return Comment.get_by_id(comment_id)
+    @classmethod
+    def by_id(cls, comment_id):
+        return Comment.get_by_id(comment_id)
 
-# class Like(db.Model):
-#     post_id = db.IntegerProperty(required = True)
-#     isLike = db.BooleanProperty(required = True)
-#     user_id = db.IntegerProperty(required = True)
-#     created = db.DateTimeProperty(auto_now_add = True)
-#     last_modified = db.DateTimeProperty(auto_now = True)
+class Like(db.Model):
+    post_id = db.IntegerProperty(required = True)
+    isLike = db.BooleanProperty(required = True)
+    user_id = db.IntegerProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
+    last_modified = db.DateTimeProperty(auto_now = True)
+
+## Decorators
+def post_exists(function):
+    @wraps(function)
+    def wrapper(self, post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        if post:
+            return function(self, post_id, post)
+        else:
+            self.error(404)
+            return
+    return wrapper
+
+def user_owns_post(function):
+    @wraps(function)
+    def wrapper(self, post_id, post):
+        if (post.user.key().id() == self.user.key().id()):
+            return function(self, post_id, post)
+        else:
+            error_msg = "you can't edit or delete others' post."
+            self.render('redirect.html', error_msg = error_msg)
+    return wrapper
+
+def user_not_owns_post(function):
+    @wraps(function)
+    def wrapper(self, post_id, post):
+        if (post.user.key().id() != self.user.key().id()):
+            return function(self, post_id, post)
+        else:
+            error_msg = "you can't like or dislike your own post"
+            self.render('redirect.html', error_msg = error_msg)
+    return wrapper
+
+def comment_exists(function):
+    @wraps(function)
+    def wrapper(self, comment_id):
+        comment = Comment.by_id(int(comment_id))
+        if comment:
+            return function(self, comment_id, comment)
+        else:
+            self.error(404)
+            return
+    return wrapper
+
+def user_owns_comment(function):
+    @wraps(function)
+    def wrapper(self, comment_id, comment):
+        if (self.user.key().id() == comment.user.key().id()):
+            return function(self, comment_id, comment)
+        else:
+            error_msg = "you can't edit or delete this comment"
+            self.render('redirect.html', error_msg = error_msg)
+    return wrapper
+
+def scrollBar_position(function):
+    @wraps(function)
+    def wrapper(self, post_id):
+        s_postion = self.request.get('scrollPosition')
+        self.set_unsecure_cookie(s_postion)
+        return function(self, post_id)
+    return wrapper
+
+def user_logged_in(function):
+    @wraps(function)
+    def wrapper(self, post_id):
+        if self.user:
+            return function(self, post_id)
+        else:
+            return self.redirect('/login')
+    return wrapper
 
 ## Handlers
 class BlogHandler(webapp2.RequestHandler):
@@ -186,13 +257,8 @@ class BlogFront(BlogHandler):
         self.render('front.html', posts = posts, scrollPosition = scrollPosition)
 
 class PostPage(BlogHandler):
-    def get(self, post_id):
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        post = db.get(key)
-
-        if not post:
-            error_msg = "Don't have this post"
-            return   self.redirect('/blog', error_msg = error_msg)
+    @post_exists
+    def get(self, post_id, post):
         self.render("permalink.html", post = post, scrollPosition = 0)
 
 class Signup(BlogHandler):
@@ -267,127 +333,80 @@ class Logout(BlogHandler):
         self.logout()
         return self.redirect('/blog')
 
-
 # Implentmented class 
 # like == 1 == like, like == 0 == unlike
 class LikePost(BlogHandler):
-    def post(self, post_id):
-        #write scoll bar height in cookie
-        s_postion = self.request.get('scrollPosition')
-        self.set_unsecure_cookie(s_postion)
-
-        # check isLogin first
-        if not self.user:
-           return self.redirect("/login")
+    @scrollBar_position
+    @user_logged_in
+    @post_exists
+    @user_not_owns_post
+    def post(self, post_id, post):
+        like = Like.all().filter('post_id = ', int(post_id)).filter('user_id = ', self.user.key().id()).get()
+        like_dislike = self.request.get('like')
+        if like:
+            #if the user has liked before, update the data with latest value
+            like.isLike = bool(int(like_dislike))
+            like.put()
+            return self.redirect('/blog')
         else:
-            # prohibit login user from liking their own posts
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            if (post.user.key().id() == self.user.key().id()):
-                error_msg = "you can't like your post"
-                self.render('redirect.html', error_msg = error_msg)
-            else:
-                # see if the user has already liked this post (if there's a **like** data related to this post and this user)
-                like = Like.all().filter('post_id = ', int(post_id)).filter('user_id = ', self.user.key().id()).get()
-                like_dislike = self.request.get('like')
-
-                if like:
-                    #if the user has liked before, update the data with latest value
-                    like.isLike = bool(int(like_dislike))
-                    like.put()
-                    return self.redirect('/blog')
-                else:
-                    #if the user never likes or dislike, insert a new data with submitted value
-                    like = Like(post_id = int(post_id), isLike = bool(like_dislike), user_id = self.user.key().id())
-                    like.put()
-                    return self.redirect('/blog')
-
-class DeleteLike(BlogHandler):
-    def post(self, post_id):
-        #write scoll bar height in cookie
-        s_postion = self.request.get('scrollPosition')
-        self.set_unsecure_cookie(s_postion)
-
-        if not self.user:
-            return self.redirect("/login")
-        else:
-            like = Like.all().filter('post_id = ', int(post_id)).filter('user_id = ', self.user.key().id()).get()
-            if like:
-                like.delete()
-                return self.redirect('/blog')
-            else:
-                error_msg = "you have no data to delete"
-                self.render('redirect.html', error_msg = error_msg)
-
-class NewComment(BlogHandler):
-    def post(self, post_id):
-        #write scoll bar height in cookie
-        s_postion = self.request.get('scrollPosition')
-        self.set_unsecure_cookie(s_postion)
-
-        if not self.user:
-            return self.redirect("/login")
-        else:
-            content = self.request.get('content')
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            new_comment = Comment(content = content, user = self.user, post_id = post.key().id())
-            new_comment.put()
-            return self.redirect("/blog")
-
-class EditComment(BlogHandler):
-    def post(self, comment_id):
-        #write scoll bar height in cookie
-        s_postion = self.request.get('scrollPosition')
-        self.set_unsecure_cookie(s_postion)
-
-        if not self.user:
-            return self.redirect("/login")
-        else:
-            comment = Comment.by_id(int(comment_id))
-            # a user can only edit his own comment
-            if (self.user.key().id() == comment.user.key().id()):
-                content = self.request.get('content')
-                comment.content = content
-                comment.put()
-                return self.redirect('/blog')
-            else:
-                error_msg = "you can't edit this comment"
-                self.render('redirect.html', error_msg = error_msg)
-
-class DeleteComment(BlogHandler):
-    def post(self, comment_id):
-        #write scoll bar height in cookie
-        s_postion = self.request.get('scrollPosition')
-        self.set_unsecure_cookie(s_postion)
-
-        if not self.user:
-            return self.redirect("/login")
-        else:
-            comment = Comment.by_id(int(comment_id))
-            # a user can only delete his own comment
-            if (self.user.key().id() == comment.user.key().id()):
-                comment.delete()
-                return self.redirect('/blog')
-            else:
-                error_msg = "you can't delete this comment"
-                self.render('redirect.html', error_msg = error_msg)
-
-
-class NewPost(BlogHandler):
-    def get(self):
-        if self.user:
-            self.render("newpost.html")
-        else:
-            return self.redirect("/login")
-
-    def post(self):
-        if not self.user:
+            #if the user never likes or dislike, insert a new data with submitted value
+            like = Like(post_id = int(post_id), isLike = bool(like_dislike), user_id = self.user.key().id())
+            like.put()
             return self.redirect('/blog')
 
+class DeleteLike(BlogHandler):
+    @scrollBar_position
+    @user_logged_in
+    def post(self, post_id):
+        like = Like.all().filter('post_id = ', int(post_id)).filter('user_id = ', self.user.key().id()).get()
+        if like:
+            like.delete()
+            return self.redirect('/blog')
+        else:
+            error_msg = "you have no data to delete"
+            self.render('redirect.html', error_msg = error_msg)
+
+class NewComment(BlogHandler):
+    @scrollBar_position
+    @user_logged_in
+    @post_exists
+    def post(self, post_id, post):
+        content = self.request.get('content')
+        new_comment = Comment(content = content, user = self.user, post_id = post.key().id())
+        new_comment.put()
+        return self.redirect("/blog")
+
+class EditComment(BlogHandler):
+    @scrollBar_position
+    @user_logged_in
+    @comment_exists
+    @user_owns_comment
+    def post(self, comment_id, comment):
+        content = self.request.get('content')
+        comment.content = content
+        comment.put()
+        return self.redirect('/blog')
+
+
+class DeleteComment(BlogHandler):
+    @scrollBar_position
+    @user_logged_in
+    @comment_exists
+    @user_owns_comment
+    def post(self, comment_id, comments):
+        comment.delete()
+        return self.redirect('/blog')
+          
+
+class NewPost(BlogHandler):
+    @user_logged_in
+    def get(self):
+        self.render("newpost.html")
+
+    @user_logged_in
+    def post(self):
         subject = self.request.get('subject')
         content = self.request.get('content')
-
         if subject and content:
             p = Post(parent = blog_key(), subject = subject, content = content, user = self.user)
             p.put()
@@ -397,76 +416,47 @@ class NewPost(BlogHandler):
             self.render("newpost.html", subject=subject, content=content, error=error)
 
 class EditPost(BlogHandler):
-    def get(self, post_id):
-        if not self.user:
-            return self.redirect("/login")
-        else:
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            #only the creator can edit their posts
-            if (self.user.key().id() == post.user.key().id()):
-                subject = post.subject
-                content = post.content
-                self.render("editpost.html", subject=subject, content=content)
-            else:
-                #only the creator can enter the edit page 
-                error_msg = "you can't edit this post"
-                self.render('redirect.html', error_msg = error_msg)
+    @user_logged_in
+    @post_exists
+    @user_owns_post
+    def get(self, post_id, post):
+        subject = post.subject
+        content = post.content
+        self.render("editpost.html", subject=subject, content=content)
 
-
+    @user_logged_in
+    @post_exists
+    @user_owns_post
     def post(self, post_id):
-        if not self.user:
-            return self.redirect("/login")
+        subject = self.request.get('subject')
+        content = self.request.get('content')
+        if subject and content:
+            post.subject = subject
+            post.content = content
+            post.put()
+            return self.redirect('/blog/%s' % str(post.key().id()))
         else:
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            #only the creator can edit their posts
-            if (self.user.key().id() == post.user.key().id()):
-                subject = self.request.get('subject')
-                content = self.request.get('content')
-                if subject and content:
-                    post.subject = subject
-                    post.content = content
-                    post.put()
-                    return self.redirect('/blog/%s' % str(post.key().id()))
-                else:
-                    error = "subject and content, please!"
-                    self.render("editpost.html", subject=subject, content=content, error=error)
-            else:
-                error_msg = "you can't edit this post"
-                self.render('redirect.html', error_msg = error_msg)
-
-
+            error = "subject and content, please!"
+            self.render("editpost.html", subject=subject, content=content, error=error)
+ 
 class DeletePost(BlogHandler):
-    def post(self, post_id):
-        #write scoll bar height in cookie
-        s_postion = self.request.get('scrollPosition')
-        self.set_unsecure_cookie(s_postion)
-        
-        if not self.user:
-            return self.redirect("/login")
-        else:        
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            #only the creator can edit their posts
-            #delete related comments and like records
-            if (self.user.key().id() == post.user.key().id()):
-                post_id = post.key().id()
-                #delete all related comments
-                comments = Comment.all().filter('post_id = ', post_id )
-                for c in comments:
-                    c.delete()
-                #delete all related like records
-                likes = Like.all().filter('post_id = ', post_id)
-                for l in likes:
-                    l.delete()
-                post.delete()
-                return self.redirect('/blog')
-            else:
-                error_msg = "you can't delete this post"
-                self.render('redirect.html', error_msg = error_msg)
-
-
+    @scrollBar_position
+    @user_logged_in
+    @post_exists
+    @user_owns_post
+    def post(self, post_id, post):
+        #delete all related comments
+        comments = Comment.all().filter('post_id = ', post_id )
+        for c in comments:
+            c.delete()
+        #delete all related like records
+        likes = Like.all().filter('post_id = ', post_id)
+        for l in likes:
+            l.delete()
+        #delete the post
+        post.delete()
+        return self.redirect('/blog')
+     
 
 app = webapp2.WSGIApplication([('/', MainPage),
                                ('/blog/?', BlogFront),
