@@ -12,7 +12,7 @@ A blog system with post, comment and like(dislike) functionality, provided with 
 #Quickstart
 
 ##install
-public address:  http://tianblog123.appspot.com/blog
+public address （**需翻墙**）:  http://tianblog123.appspot.com/blog
 
 ###run locally: 
 ```
