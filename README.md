@@ -1,7 +1,7 @@
-#Muti-User-Blog
+# Muti-User-Blog
 A blog system with post, comment and like(dislike) functionality, provided with an authentication system for users to be able to register and sign in. 
 
-##Buidling tools
+## Buidling tools
 * Python
 * Jinja
 * Bootstrap
@@ -9,12 +9,12 @@ A blog system with post, comment and like(dislike) functionality, provided with 
 * Google App Engine
 
 
-#Quickstart
+# Quickstart
 
-##install
+## install
 public address （**需翻墙**）:  http://tianblog123.appspot.com/blog
 
-###run locally: 
+### run locally: 
 ```
 git clone https://github.com/GoogleCloudPlatform/python-docs-samples
 cd python-docs-samples/appengine/standard/
